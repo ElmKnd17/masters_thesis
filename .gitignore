@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Production builds
+dist/
+build/
+client/dist/
+server/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+client/.env
+client/.env.*
+server/.env
+server/.env.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+client/*-dev.out.log
+client/*-dev.err.log
+server/*-dev.out.log
+server/*-dev.err.log
+
+# Runtime / cache
+.cache/
+.parcel-cache/
+.vite/
+coverage/
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local notes / temporary files
+selectel.txt
+*.tmp
+*.temp
