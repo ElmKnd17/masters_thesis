@@ -150,7 +150,14 @@ class MasterController {
         return res.status(404).json({ message: 'Master not found' });
       }
 
+      const user = await User.findByPk(master.userId);
+
       await master.destroy();
+
+      if (user) {
+        await user.update({ role: 'CLIENT' });
+      }
+
       return res.status(204).send();
     } catch (error) {
       return res.status(500).json({
