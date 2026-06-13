@@ -187,15 +187,15 @@ function BookingWidget({ initialParams = {}, onBooked }) {
   }
 
   return (
-    <section className="border border-neutral-200 bg-white p-5 text-neutral-950 sm:p-8">
+    <section className="border border-neutral-200 bg-white p-4 text-neutral-950 sm:p-8">
       <div className="border-b border-neutral-200 pb-6">
         <p className="text-sm uppercase text-neutral-500">Онлайн-запись</p>
-        <h2 className="mt-3 font-serif text-3xl font-normal">
+        <h2 className="mt-3 font-serif text-2xl font-normal sm:text-3xl">
           Выберите удобное время
         </h2>
       </div>
 
-      <form className="mt-8 space-y-7" onSubmit={handleSubmit}>
+      <form className="mt-6 space-y-6 sm:mt-8 sm:space-y-7" onSubmit={handleSubmit}>
         <div className="grid gap-5 lg:grid-cols-3">
           <label className="block text-sm text-neutral-700">
             Услуга
@@ -252,7 +252,7 @@ function BookingWidget({ initialParams = {}, onBooked }) {
             )}
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-3 sm:overflow-visible sm:pr-0 lg:grid-cols-4">
             {slots.map((slot) => {
               const isSelected = selectedSlot?.start_time === slot.start_time
 

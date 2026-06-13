@@ -79,30 +79,34 @@ function App() {
             <Footer />
 
             {isBookingOpen && (
-              <div className="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-neutral-950/60 px-4 py-8">
+              <div className="fixed inset-0 z-40 flex items-stretch justify-center bg-neutral-950/60 px-3 py-4 sm:items-center sm:px-4 sm:py-8">
                 <div
                   className="absolute inset-0"
                   aria-hidden="true"
                   onClick={bookingContextValue.closeBooking}
                 />
                 <section
-                  className="relative w-full max-w-5xl bg-white p-4 shadow-2xl sm:p-6"
+                  className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden bg-white shadow-2xl sm:max-h-[calc(100dvh-4rem)]"
                   role="dialog"
                   aria-modal="true"
                   aria-label="Онлайн-запись"
                 >
-                  <button
-                    type="button"
-                    className="absolute right-4 top-4 z-10 flex size-9 items-center justify-center border border-neutral-200 bg-white text-xl leading-none text-neutral-500 transition hover:border-neutral-950 hover:text-neutral-950"
-                    onClick={bookingContextValue.closeBooking}
-                    aria-label="Закрыть"
-                  >
-                    ×
-                  </button>
-                  <BookingWidget
-                    initialParams={bookingParams}
-                    onBooked={bookingContextValue.closeBooking}
-                  />
+                  <div className="flex shrink-0 justify-end border-b border-neutral-200 bg-white p-3 sm:p-4">
+                    <button
+                      type="button"
+                      className="flex size-10 items-center justify-center border border-neutral-200 bg-white text-xl leading-none text-neutral-500 transition hover:border-neutral-950 hover:text-neutral-950"
+                      onClick={bookingContextValue.closeBooking}
+                      aria-label="Закрыть"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
+                    <BookingWidget
+                      initialParams={bookingParams}
+                      onBooked={bookingContextValue.closeBooking}
+                    />
+                  </div>
                 </section>
               </div>
             )}
