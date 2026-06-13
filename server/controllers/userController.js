@@ -4,17 +4,21 @@ const { User } = require('../models/models');
 
 const getJwtSecret = () => process.env.SECRET_KEY || 'development_secret_key';
 
+const isCookieSecure = () => process.env.COOKIE_SECURE === 'true';
+
 const getCookieOptions = () => ({
   maxAge: 24 * 60 * 60 * 1000,
   httpOnly: true,
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  secure: process.env.NODE_ENV === 'production',
+  path: '/',
+  sameSite: isCookieSecure() ? 'none' : 'lax',
+  secure: isCookieSecure(),
 });
 
 const getClearCookieOptions = () => ({
   httpOnly: true,
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  secure: process.env.NODE_ENV === 'production',
+  path: '/',
+  sameSite: isCookieSecure() ? 'none' : 'lax',
+  secure: isCookieSecure(),
 });
 
 const generateJwt = (user) => jwt.sign(

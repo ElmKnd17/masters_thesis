@@ -39,6 +39,7 @@ services:
       DB_PORT: 5432
       SECRET_KEY: ${SECRET_KEY}
       CLIENT_URL: ${CLIENT_URL:-http://localhost}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
 
   client:
     build:
