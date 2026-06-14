@@ -42,6 +42,7 @@ const Appointment = sequelize.define('appointment', {
   start_time: { type: DataTypes.TIME, allowNull: false },
   end_time: { type: DataTypes.TIME, allowNull: false },
   status: { type: DataTypes.STRING, allowNull: false, defaultValue: 'PENDING' },
+  reminder_sent: { type: DataTypes.BOOLEAN, defaultValue: false },
 });
 
 const Notification = sequelize.define('notification', {

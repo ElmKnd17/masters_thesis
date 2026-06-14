@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const moment = require('moment-timezone');
 const {
   Appointment,
   MasterProfile,
@@ -10,11 +11,39 @@ const {
 
 const DEFAULT_SLOT_STEP = 30;
 const CANCELLED_STATUS = 'CANCELLED';
+const APP_TIMEZONE = 'Etc/GMT-4';
 const statusLabels = {
   PENDING: 'Ожидает',
   CONFIRMED: 'Подтверждена',
   CANCELLED: 'Отменена',
   COMPLETED: 'Завершена',
+};
+
+const normalizeTime = (time) => {
+  if (!time || typeof time !== 'string') return '';
+
+  const [hours = '00', minutes = '00', seconds = '00'] = time.split(':');
+  return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
+};
+
+const getNowInAppTimezone = () => moment().tz(APP_TIMEZONE);
+
+const getDateTimeInAppTimezone = (date, time) => (
+  moment.tz(
+    `${date} ${normalizeTime(time)}`,
+    'YYYY-MM-DD HH:mm:ss',
+    APP_TIMEZONE,
+  )
+);
+
+const getTodayInAppTimezone = () => getNowInAppTimezone().format('YYYY-MM-DD');
+
+const isPastStartTime = ({ date, startTime }) => {
+  const startDateTime = getDateTimeInAppTimezone(date, startTime);
+
+  if (!startDateTime.isValid()) return true;
+
+  return startDateTime.isBefore(getNowInAppTimezone());
 };
 
 const parseTimeToMinutes = (time) => {
@@ -54,7 +83,22 @@ const getBusyRanges = (appointments) => appointments
   }))
   .filter((range) => range.start !== null && range.end !== null && range.end > range.start);
 
-const buildAvailableSlots = ({ schedule, serviceDuration, appointments }) => {
+const filterFutureSlots = ({ slots, date }) => {
+  if (date !== getTodayInAppTimezone()) return slots;
+
+  const now = getNowInAppTimezone();
+
+  return slots.filter((slot) => (
+    getDateTimeInAppTimezone(date, slot.start_time).isSameOrAfter(now)
+  ));
+};
+
+const buildAvailableSlots = ({
+  schedule,
+  serviceDuration,
+  appointments,
+  date,
+}) => {
   const scheduleStart = parseTimeToMinutes(schedule.start_time);
   const scheduleEnd = parseTimeToMinutes(schedule.end_time);
   const duration = Number(serviceDuration) || DEFAULT_SLOT_STEP;
@@ -91,7 +135,7 @@ const buildAvailableSlots = ({ schedule, serviceDuration, appointments }) => {
     }
   }
 
-  return slots;
+  return filterFutureSlots({ slots, date });
 };
 
 const loadAvailabilityContext = async ({ masterId, date, serviceId }) => {
@@ -123,19 +167,14 @@ const loadAvailabilityContext = async ({ masterId, date, serviceId }) => {
 };
 
 const getDateRange = (period = 'week') => {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  if (period === 'today') {
-    end.setDate(start.getDate());
-  } else {
-    end.setDate(start.getDate() + 6);
-  }
+  const start = getNowInAppTimezone().startOf('day');
+  const end = period === 'today'
+    ? start.clone()
+    : start.clone().add(6, 'days');
 
   return {
-    from: start.toISOString().slice(0, 10),
-    to: end.toISOString().slice(0, 10),
+    from: start.format('YYYY-MM-DD'),
+    to: end.format('YYYY-MM-DD'),
   };
 };
 
@@ -220,6 +259,7 @@ class AppointmentController {
         schedule,
         serviceDuration: service.duration,
         appointments,
+        date,
       });
 
       return res.status(200).json({
@@ -270,10 +310,15 @@ class AppointmentController {
         return res.status(409).json({ message: 'Master has no schedule for this date' });
       }
 
+      if (isPastStartTime({ date, startTime: start_time })) {
+        return res.status(400).json({ message: 'Cannot book a past time slot' });
+      }
+
       const slots = buildAvailableSlots({
         schedule,
         serviceDuration: service.duration,
         appointments,
+        date,
       });
       const selectedSlot = slots.find((slot) => slot.start_time === start_time);
 

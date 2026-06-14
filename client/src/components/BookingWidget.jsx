@@ -3,13 +3,48 @@ import Button from './Button'
 import api from '../utils/api'
 import { useAuth } from '../context/AuthContext'
 
-const getToday = () => {
-  const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
+const APP_TIMEZONE_OFFSET_MINUTES = 4 * 60
+
+const getDateInAppTimezone = (timestamp = Date.now()) => (
+  new Date(timestamp + APP_TIMEZONE_OFFSET_MINUTES * 60 * 1000)
+)
+
+const getToday = (timestamp = Date.now()) => {
+  const today = getDateInAppTimezone(timestamp)
+  const year = today.getUTCFullYear()
+  const month = String(today.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(today.getUTCDate()).padStart(2, '0')
 
   return `${year}-${month}-${day}`
+}
+
+const getCurrentTimeValue = (timestamp = Date.now()) => {
+  const today = getDateInAppTimezone(timestamp)
+
+  return (
+    today.getUTCHours() * 60
+    + today.getUTCMinutes()
+    + today.getUTCSeconds() / 60
+  )
+}
+
+const parseTimeToMinutes = (time) => {
+  if (!time || typeof time !== 'string') return null
+
+  const [hours, minutes] = time.split(':').map(Number)
+
+  if (
+    Number.isNaN(hours)
+    || Number.isNaN(minutes)
+    || hours < 0
+    || hours > 23
+    || minutes < 0
+    || minutes > 59
+  ) {
+    return null
+  }
+
+  return hours * 60 + minutes
 }
 
 const getServiceLabel = (service) => {
@@ -46,11 +81,41 @@ function BookingWidget({ initialParams = {}, onBooked }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [currentTimeTick, setCurrentTimeTick] = useState(() => Date.now())
 
   const availableMasters = useMemo(
     () => masters.filter((master) => masterCanProvideService(master, serviceId)),
     [masters, serviceId],
   )
+
+  const todayInAppTimezone = useMemo(
+    () => getToday(currentTimeTick),
+    [currentTimeTick],
+  )
+
+  const visibleSlots = useMemo(() => {
+    if (date !== todayInAppTimezone) return slots
+
+    const currentTimeValue = getCurrentTimeValue(currentTimeTick)
+
+    return slots.filter((slot) => {
+      const slotStart = parseTimeToMinutes(slot.start_time)
+      return slotStart !== null && slotStart >= currentTimeValue
+    })
+  }, [currentTimeTick, date, slots, todayInAppTimezone])
+
+  const isSelectedSlotAvailable = Boolean(
+    selectedSlot
+    && visibleSlots.some((slot) => slot.start_time === selectedSlot.start_time),
+  )
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentTimeTick(Date.now())
+    }, 60 * 1000)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -143,7 +208,7 @@ function BookingWidget({ initialParams = {}, onBooked }) {
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    if (!selectedSlot) {
+    if (!isSelectedSlotAvailable) {
       setError('Выберите свободное время')
       return
     }
@@ -236,7 +301,7 @@ function BookingWidget({ initialParams = {}, onBooked }) {
             <input
               className="mt-2 w-full rounded-sm border border-neutral-300 bg-white px-3 py-3 text-neutral-950 outline-none transition focus:border-neutral-950 disabled:bg-neutral-50 disabled:text-neutral-400"
               type="date"
-              min={getToday()}
+              min={todayInAppTimezone}
               value={date}
               onChange={(event) => setDate(event.target.value)}
               disabled={!masterId}
@@ -253,7 +318,7 @@ function BookingWidget({ initialParams = {}, onBooked }) {
           </div>
 
           <div className="grid max-h-56 gap-2 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-3 sm:overflow-visible sm:pr-0 lg:grid-cols-4">
-            {slots.map((slot) => {
+            {visibleSlots.map((slot) => {
               const isSelected = selectedSlot?.start_time === slot.start_time
 
               return (
@@ -274,7 +339,7 @@ function BookingWidget({ initialParams = {}, onBooked }) {
             })}
           </div>
 
-          {!isLoadingSlots && serviceId && masterId && date && slots.length === 0 && (
+          {!isLoadingSlots && serviceId && masterId && date && visibleSlots.length === 0 && (
             <p className="border border-neutral-200 px-4 py-4 text-sm text-neutral-500">
               На выбранную дату свободных слотов нет.
             </p>
@@ -295,7 +360,7 @@ function BookingWidget({ initialParams = {}, onBooked }) {
 
         <Button
           type="submit"
-          disabled={!selectedSlot || isSubmitting}
+          disabled={!isSelectedSlotAvailable || isSubmitting}
           className="w-full disabled:cursor-not-allowed disabled:border-neutral-300 disabled:bg-neutral-200 disabled:text-neutral-500 sm:w-auto"
         >
           {isSubmitting ? 'Записываем...' : 'Записаться'}

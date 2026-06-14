@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY index.js db.js seed.js ./
+COPY index.js db.js seed.js cron.js ./
 COPY controllers ./controllers
 COPY error ./error
 COPY middleware ./middleware
